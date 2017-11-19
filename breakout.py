@@ -1,93 +1,132 @@
-# import pygame
-#
-# game_over = False
-# width = 800
-# height = 600
-#
-# white = (255, 255, 255)
-#
-#
-# def main():
-#     pygame.init()
-#     screen = pygame.display.set_mode((width, height))
-#     pygame.display.set_caption('Breakout')
-#     clock = pygame.time.Clock()
-#
-#     global game_over
-#     while not game_over:
-#         screen.fill(white)
-#         for event in pygame.event.get():
-#             if event.type == pygame.QUIT:
-#                 game_over = True
-#
-#         # print(event)
-#         pygame.display.update()
-#         clock.tick(60)
-#
-#
-# if __name__ == '__main__':
-#     main()
+import random
 
-import pygame, sys
-from pygame.locals import *
+import pygame
+import config as c
+from game import Game
+from game_object import GameObject
 
-# set up pygame
-pygame.init()
 
-# set up the window
-windowSurface = pygame.display.set_mode((500, 400), 0, 32)
-pygame.display.set_caption('Hello world!')
+class Paddle(GameObject):
+    def __init__(self, x, y, w, h, color, offset):
+        GameObject.__init__(self, x, y, w, h)
+        self.width = w
+        self.height = h
+        self.color = color
+        self.offset = offset
+        self.left_down = False
+        self.right_down = False
 
-# set up the colors
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
+    def draw(self, surface):
+        pygame.draw.rect(surface, self.color, self.bounds)
 
-# set up fonts
-basicFont = pygame.font.SysFont(None, 48)
+    def handle(self, key):
+        if key == pygame.K_LEFT:
+            self.left_down = not self.left_down
+        else:
+            self.right_down = not self.right_down
 
-# set up the text
-text = basicFont.render('Hello world!', True, WHITE, BLUE)
-textRect = text.get_rect()
-textRect.centerx = windowSurface.get_rect().centerx
-textRect.centery = windowSurface.get_rect().centery
+    def update(self):
+        if self.left_down:
+            dx = -(min(self.offset, self.left))
+        elif self.right_down:
+            dx = min(self.offset, c.screen_width - self.right)
+        else:
+            return
 
-# draw the white background onto the surface
-windowSurface.fill(WHITE)
+        if self.x < 0 or self.right > c.screen_width:
+            print(dx)
+        self.move(dx, 0)
 
-# draw a green polygon onto the surface
-pygame.draw.polygon(windowSurface, GREEN, ((146, 0), (291, 106), (236, 277), (56, 277), (0, 106)))
 
-# draw some blue lines onto the surface
-pygame.draw.line(windowSurface, BLUE, (60, 60), (120, 60), 4)
-pygame.draw.line(windowSurface, BLUE, (120, 60), (60, 120))
-pygame.draw.line(windowSurface, BLUE, (60, 120), (120, 120), 4)
+class Ball(GameObject):
+    def __init__(self, x, y, r, color, speed):
+        GameObject.__init__(self, x, y, r * 2, r * 2, speed)
+        self.radius = r
+        self.color = color
 
-# draw a blue circle onto the surface
-pygame.draw.circle(windowSurface, BLUE, (300, 50), 20, 0)
+    def draw(self, surface):
+        pygame.draw.circle(surface, self.color, (self.x, self.y), self.radius)
 
-# draw a red ellipse onto the surface
-pygame.draw.ellipse(windowSurface, RED, (300, 250, 40, 80), 1)
 
-# draw the text's background rectangle onto the surface
-pygame.draw.rect(windowSurface, RED, (textRect.left - 20, textRect.top - 20, textRect.width + 40, textRect.height + 40))
+class Brick(GameObject):
+    def __init__(self, x, y, w, h, color):
+        GameObject.__init__(self, x, y, w, h)
+        self.width = w
+        self.height = h
+        self.color = color
 
-# get a pixel array of the surface
-pixArray = pygame.PixelArray(windowSurface)
-pixArray[480][380] = BLACK
-del pixArray
+    def draw(self, surface):
+        pygame.draw.rect(surface, self.color, self.bounds)
 
-# draw the text onto the surface
-windowSurface.blit(text, textRect)
 
-# draw the window onto the screen
-pygame.display.update()
+class Breakout(Game):
+    def __init__(self):
+        Game.__init__(self, c.screen_width, c.screen_height, c.screen_color, c.frame_rate)
+        self.bricks = self.create_bricks()
+        self.paddle = self.create_paddle()
+        self.ball = self.create_ball()
 
-# run the game loop
-while True:
-    for event in pygame.event.get():
-        if event.type == QUIT:
-            pygame.quit()
-            sys.exit()
+    def create_ball(self):
+        speed = (random.randint(-3, 3), 5)
+        ball = Ball(c.screen_width // 2,
+                    c.screen_height // 2,
+                    c.ball_radius,
+                    c.ball_color,
+                    speed)
+        self.objects.append(ball)
+        return ball
+
+    def create_paddle(self):
+        paddle = Paddle((c.screen_width - c.paddle_width) // 2,
+                        c.screen_height - c.paddle_height * 2,
+                        c.paddle_width,
+                        c.paddle_height,
+                        c.paddle_color,
+                        c.paddle_speed)
+        self.objects.append(paddle)
+        self.keydown_handlers[pygame.K_LEFT].append(paddle.handle)
+        self.keydown_handlers[pygame.K_RIGHT].append(paddle.handle)
+        self.keyup_handlers[pygame.K_LEFT].append(paddle.handle)
+        self.keyup_handlers[pygame.K_RIGHT].append(paddle.handle)
+        return paddle
+
+    def create_bricks(self):
+        w = c.brick_width
+        h = c.brick_height
+        brick_count = c.screen_width // (w + 1)
+        offset_x = (c.screen_width - brick_count * (w + 1)) // 2
+
+        bricks = []
+        for row in range(c.row_count):
+            for col in range(brick_count):
+                brick = Brick(offset_x + col * (w + 1),
+                              c.offset_y + row * (h + 1),
+                              w,
+                              h,
+                              c.RED)
+                self.objects.append(brick)
+                bricks.append(brick)
+        return bricks
+
+    def update(self):
+        def intersect(paddle, ball):
+            if ball.bottom < paddle.top:
+                return False
+            if ball.right < paddle.left:
+                return False
+            if ball.left > paddle.right:
+                return False
+            return True
+
+        if intersect(self.paddle, self.ball):
+            s = self.ball.speed
+            self.ball.speed = (s[0], s[1] * -1)
+        super().update()
+
+
+def main():
+    Breakout().run()
+
+
+if __name__ == '__main__':
+    main()
