@@ -1,37 +1,36 @@
+from pygame.rect import Rect
+
+
 class GameObject:
     def __init__(self, x, y, w, h, speed=(0,0)):
-        self.x = x
-        self.y = y
-        self.w = w
-        self.h = h
+        self.bounds = Rect(x, y, w, h)
         self.speed = speed
 
     @property
-    def bounds(self):
-        return self.x, self.y, self.w, self.h
-
-    @property
     def left(self):
-        return self.x
+        return self.bounds.left
 
     @property
     def right(self):
-        return self.x + self.w
+        return self.bounds.right
 
     @property
     def top(self):
-        return self.y
+        return self.bounds.top
 
     @property
     def bottom(self):
-        return self.y + self.h
+        return self.bounds.bottom
+
+    @property
+    def center(self):
+        return self.bounds.center
 
     def draw(self, surface):
         pass
 
     def move(self, dx, dy):
-        self.x += dx
-        self.y += dy
+        self.bounds = self.bounds.move(dx, dy)
 
     def update(self):
         """"""

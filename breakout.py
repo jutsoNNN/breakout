@@ -1,70 +1,21 @@
 import random
 
 import pygame
+
 import config as c
+from ball import Ball
+from brick import Brick
 from game import Game
-from game_object import GameObject
-
-
-class Paddle(GameObject):
-    def __init__(self, x, y, w, h, color, offset):
-        GameObject.__init__(self, x, y, w, h)
-        self.width = w
-        self.height = h
-        self.color = color
-        self.offset = offset
-        self.left_down = False
-        self.right_down = False
-
-    def draw(self, surface):
-        pygame.draw.rect(surface, self.color, self.bounds)
-
-    def handle(self, key):
-        if key == pygame.K_LEFT:
-            self.left_down = not self.left_down
-        else:
-            self.right_down = not self.right_down
-
-    def update(self):
-        if self.left_down:
-            dx = -(min(self.offset, self.left))
-        elif self.right_down:
-            dx = min(self.offset, c.screen_width - self.right)
-        else:
-            return
-
-        if self.x < 0 or self.right > c.screen_width:
-            print(dx)
-        self.move(dx, 0)
-
-
-class Ball(GameObject):
-    def __init__(self, x, y, r, color, speed):
-        GameObject.__init__(self, x, y, r * 2, r * 2, speed)
-        self.radius = r
-        self.color = color
-
-    def draw(self, surface):
-        pygame.draw.circle(surface, self.color, (self.x, self.y), self.radius)
-
-
-class Brick(GameObject):
-    def __init__(self, x, y, w, h, color):
-        GameObject.__init__(self, x, y, w, h)
-        self.width = w
-        self.height = h
-        self.color = color
-
-    def draw(self, surface):
-        pygame.draw.rect(surface, self.color, self.bounds)
+from paddle import Paddle
 
 
 class Breakout(Game):
     def __init__(self):
-        Game.__init__(self, c.screen_width, c.screen_height, c.screen_color, c.frame_rate)
+        Game.__init__(self, 'Breakout', c.screen_width, c.screen_height, c.screen_color, c.frame_rate)
         self.bricks = self.create_bricks()
         self.paddle = self.create_paddle()
         self.ball = self.create_ball()
+        self.score = 0
 
     def create_ball(self):
         speed = (random.randint(-3, 3), 5)
@@ -108,19 +59,37 @@ class Breakout(Game):
                 bricks.append(brick)
         return bricks
 
-    def update(self):
-        def intersect(paddle, ball):
-            if ball.bottom < paddle.top:
-                return False
-            if ball.right < paddle.left:
-                return False
-            if ball.left > paddle.right:
-                return False
-            return True
+    def handle_ball_collisions(self):
+        def intersect(obj, ball):
+            return obj.bounds.inflate(ball.diameter, ball.diameter).collidepoint(*ball.center)
 
+        s = self.ball.speed
         if intersect(self.paddle, self.ball):
-            s = self.ball.speed
-            self.ball.speed = (s[0], s[1] * -1)
+            self.ball.speed = (s[0], -s[1])
+
+        # Hit floor
+        if self.ball.top > c.screen_height:
+            self.game_over = True
+
+        # Hit ceiling
+        if self.ball.top < 0:
+            self.ball.speed = (s[0], -s[1])
+
+        # Hit wall
+        if self.ball.left < 0 or self.ball.right > c.screen_width:
+            self.ball.speed = (-s[0], s[1])
+
+        # Hit brick
+        for brick in self.bricks:
+            if intersect(brick, self.ball):
+                self.bricks.remove(brick)
+                self.objects.remove(brick)
+                self.score += 1
+                self.ball.speed = (s[0], -s[1])
+
+
+    def update(self):
+        self.handle_ball_collisions()
         super().update()
 
 
