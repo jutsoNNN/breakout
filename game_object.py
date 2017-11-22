@@ -26,6 +26,14 @@ class GameObject:
     def center(self):
         return self.bounds.center
 
+    @property
+    def centerx(self):
+        return self.bounds.centerx
+
+    @property
+    def centery(self):
+        return self.bounds.centery
+
     def draw(self, surface):
         pass
 

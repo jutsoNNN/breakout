@@ -1,6 +1,7 @@
 import random
 
 import pygame
+from pygame.rect import Rect
 
 import config as c
 from ball import Ball
@@ -61,11 +62,39 @@ class Breakout(Game):
 
     def handle_ball_collisions(self):
         def intersect(obj, ball):
-            return obj.bounds.inflate(ball.diameter, ball.diameter).collidepoint(*ball.center)
+            edges = dict(left=Rect(obj.left, obj.top, 1, obj.height),
+                         right=Rect(obj.right, obj.top, 1, obj.height),
+                         top=Rect(obj.left, obj.top, obj.width, 1),
+                         bottom=Rect(obj.left, obj.bottom, obj.width, 1))
+            collisions = set(edge for edge, rect in edges.items() if ball.bounds.colliderect(rect))
+            if not collisions:
+                return None
+
+            if len(collisions) == 1:
+                return list(collisions)[0]
+
+            if 'top' in collisions:
+                if ball.centery >= obj.top:
+                    return 'top'
+                if ball.centerx < obj.left:
+                    return 'left'
+                else:
+                    return 'right'
+
+            if 'bottom' in collisions:
+                if ball.centery >= obj.bottom:
+                    return 'bottom'
+                if ball.centerx < obj.left:
+                    return 'left'
+                else:
+                    return 'right'
 
         s = self.ball.speed
-        if intersect(self.paddle, self.ball):
+        edge = intersect(self.paddle, self.ball)
+        if edge == 'top':
             self.ball.speed = (s[0], -s[1])
+        elif edge in ('left', 'right'):
+            self.ball.speed = (-s[0], s[1])
 
         # Hit floor
         if self.ball.top > c.screen_height:
@@ -81,12 +110,17 @@ class Breakout(Game):
 
         # Hit brick
         for brick in self.bricks:
-            if intersect(brick, self.ball):
-                self.bricks.remove(brick)
-                self.objects.remove(brick)
-                self.score += 1
-                self.ball.speed = (s[0], -s[1])
+            edge = intersect(brick, self.ball)
+            if not edge:
+                continue
+            self.bricks.remove(brick)
+            self.objects.remove(brick)
+            self.score += 1
 
+            if edge in ('top', 'bottom'):
+                self.ball.speed = (s[0], -s[1])
+            else:
+                self.ball.speed = (-s[0], s[1])
 
     def update(self):
         self.handle_ball_collisions()
