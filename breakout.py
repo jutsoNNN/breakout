@@ -8,25 +8,43 @@ from ball import Ball
 from brick import Brick
 from game import Game
 from paddle import Paddle
+from text_label import TextLabel
 
 
 class Breakout(Game):
     def __init__(self):
         Game.__init__(self, 'Breakout', c.screen_width, c.screen_height, c.screen_color, c.frame_rate)
-        self.bricks = self.create_bricks()
-        self.paddle = self.create_paddle()
-        self.ball = self.create_ball()
         self.score = 0
+        self.lives = c.initial_lives
+        self.create_bricks()
+        self.create_paddle()
+        self.create_ball()
+        self.create_labels()
+
+    def create_labels(self):
+        self.score_label = TextLabel(c.score_offset,
+                                     c.status_offset_y,
+                                     lambda: f'SCORE: {self.score}',
+                                     c.BLUE,
+                                     c.font_name,
+                                     c.font_size)
+        self.objects.append(self.score_label)
+        self.lives_label = TextLabel(c.lives_offset,
+                                    c.status_offset_y,
+                                    lambda: f'LIVES: {self.lives}',
+                                    c.BLUE,
+                                    c.font_name,
+                                    c.font_size)
+        self.objects.append(self.lives_label)
 
     def create_ball(self):
         speed = (random.randint(-3, 3), 5)
-        ball = Ball(c.screen_width // 2,
-                    c.screen_height // 2,
-                    c.ball_radius,
-                    c.ball_color,
-                    speed)
-        self.objects.append(ball)
-        return ball
+        self.ball = Ball(c.screen_width // 2,
+                         c.screen_height // 2,
+                         c.ball_radius,
+                         c.ball_color,
+                         speed)
+        self.objects.append(self.ball)
 
     def create_paddle(self):
         paddle = Paddle((c.screen_width - c.paddle_width) // 2,
@@ -40,7 +58,7 @@ class Breakout(Game):
         self.keydown_handlers[pygame.K_RIGHT].append(paddle.handle)
         self.keyup_handlers[pygame.K_LEFT].append(paddle.handle)
         self.keyup_handlers[pygame.K_RIGHT].append(paddle.handle)
-        return paddle
+        self.paddle = paddle
 
     def create_bricks(self):
         w = c.brick_width
@@ -58,7 +76,7 @@ class Breakout(Game):
                               c.RED)
                 self.objects.append(brick)
                 bricks.append(brick)
-        return bricks
+        self.bricks = bricks
 
     def handle_ball_collisions(self):
         def intersect(obj, ball):
@@ -98,7 +116,11 @@ class Breakout(Game):
 
         # Hit floor
         if self.ball.top > c.screen_height:
-            self.game_over = True
+            self.lives -= 1
+            if self.lives == 0:
+                self.game_over = True
+            else:
+                self.create_ball()
 
         # Hit ceiling
         if self.ball.top < 0:

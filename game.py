@@ -11,6 +11,7 @@ class Game:
         self.game_over = False
         self.objects = []
         pygame.init()
+        pygame.font.init()
         self.surface = pygame.display.set_mode((width, height))
         pygame.display.set_caption(caption)
         self.clock = pygame.time.Clock()
