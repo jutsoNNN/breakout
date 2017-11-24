@@ -5,8 +5,8 @@ from collections import defaultdict
 
 
 class Game:
-    def __init__(self, caption, width, height, back_color, frame_rate):
-        self.back_color = back_color
+    def __init__(self, caption, width, height, back_image, frame_rate):
+        self.back_image = back_image
         self.frame_rate = frame_rate
         self.game_over = False
         self.objects = []
@@ -39,8 +39,10 @@ class Game:
                     handler(event.key)
 
     def run(self):
+        bg = pygame.image.load(self.back_image)
         while not self.game_over:
-            self.surface.fill(self.back_color)
+            self.surface.blit(bg, (0, 0))
+            #self.surface.fill(self.back_color)
 
             self.handle_events()
             self.update()

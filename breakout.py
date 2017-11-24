@@ -1,4 +1,5 @@
 import random
+from datetime import datetime, timedelta
 
 import pygame
 from pygame.rect import Rect
@@ -9,11 +10,20 @@ from brick import Brick
 from game import Game
 from paddle import Paddle
 from text_label import TextLabel
+import colors
+
+special_effects = dict(
+    long_paddle=(colors.ORANGE,
+                 lambda g: g.paddle.bounds.inflate_ip(c.paddle_width // 2, 0),
+                 lambda g: g.paddle.bounds.inflate_ip(-c.paddle_width // 2, 0))
+)
 
 
 class Breakout(Game):
     def __init__(self):
-        Game.__init__(self, 'Breakout', c.screen_width, c.screen_height, c.screen_color, c.frame_rate)
+        Game.__init__(self, 'Breakout', c.screen_width, c.screen_height, c.background_image, c.frame_rate)
+        self.reset_effect = None
+        self.effect_start_time = None
         self.score = 0
         self.lives = c.initial_lives
         self.create_bricks()
@@ -25,20 +35,20 @@ class Breakout(Game):
         self.score_label = TextLabel(c.score_offset,
                                      c.status_offset_y,
                                      lambda: f'SCORE: {self.score}',
-                                     c.BLUE,
+                                     c.text_color,
                                      c.font_name,
                                      c.font_size)
         self.objects.append(self.score_label)
         self.lives_label = TextLabel(c.lives_offset,
-                                    c.status_offset_y,
-                                    lambda: f'LIVES: {self.lives}',
-                                    c.BLUE,
-                                    c.font_name,
-                                    c.font_size)
+                                     c.status_offset_y,
+                                     lambda: f'LIVES: {self.lives}',
+                                     c.text_color,
+                                     c.font_name,
+                                     c.font_size)
         self.objects.append(self.lives_label)
 
     def create_ball(self):
-        speed = (random.randint(-3, 3), 5)
+        speed = (random.randint(-2, 2), c.ball_speed)
         self.ball = Ball(c.screen_width // 2,
                          c.screen_height // 2,
                          c.ball_radius,
@@ -69,11 +79,19 @@ class Breakout(Game):
         bricks = []
         for row in range(c.row_count):
             for col in range(brick_count):
+                effect = None
+                brick_color = c.brick_color
+                index = random.randint(0, 10)
+                if index < 2:
+                    brick_color, start_effect_func, reset_effect_func = list(special_effects.values())[0]
+                    effect = start_effect_func, reset_effect_func
+
                 brick = Brick(offset_x + col * (w + 1),
                               c.offset_y + row * (h + 1),
                               w,
                               h,
-                              c.RED)
+                              brick_color,
+                              effect)
                 self.objects.append(brick)
                 bricks.append(brick)
         self.bricks = bricks
@@ -107,10 +125,17 @@ class Breakout(Game):
                 else:
                     return 'right'
 
+        # Hit paddle
         s = self.ball.speed
         edge = intersect(self.paddle, self.ball)
         if edge == 'top':
-            self.ball.speed = (s[0], -s[1])
+            speed_x = s[0]
+            speed_y = -s[1]
+            if self.paddle.moving_left:
+                speed_x -= 1
+            elif self.paddle.moving_left:
+                speed_x += 1
+            self.ball.speed = speed_x, speed_y
         elif edge in ('left', 'right'):
             self.ball.speed = (-s[0], s[1])
 
@@ -135,6 +160,7 @@ class Breakout(Game):
             edge = intersect(brick, self.ball)
             if not edge:
                 continue
+
             self.bricks.remove(brick)
             self.objects.remove(brick)
             self.score += 1
@@ -144,7 +170,24 @@ class Breakout(Game):
             else:
                 self.ball.speed = (-s[0], s[1])
 
+            if brick.special_effect is not None:
+                # Reset previous effect if any
+                if self.reset_effect is not None:
+                    self.reset_effect(self)
+
+                # Trigger special effect
+                self.effect_start_time = datetime.now()
+                brick.special_effect[0](self)
+                # Set current reset effect function
+                self.reset_effect = brick.special_effect[1]
+
     def update(self):
+        # Reset special effect if needed
+        if self.reset_effect:
+            if datetime.now() - self.effect_start_time >= timedelta(seconds=c.effect_duration):
+                self.reset_effect(self)
+                self.reset_effect = None
+
         self.handle_ball_collisions()
         super().update()
 

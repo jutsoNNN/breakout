@@ -23,6 +23,14 @@ class GameObject:
         return self.bounds.bottom
 
     @property
+    def width(self):
+        return self.bounds.width
+
+    @property
+    def height(self):
+        return self.bounds.height
+
+    @property
     def center(self):
         return self.bounds.center
 
