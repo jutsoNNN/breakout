@@ -1,3 +1,7 @@
+"""
+https://www.webucator.com/blog/2015/03/python-color-constants-module/
+"""
+
 ALICEBLUE = (240, 248, 255)
 ANTIQUEWHITE = (250, 235, 215)
 ANTIQUEWHITE1 = (255, 239, 219)
@@ -258,7 +262,6 @@ HOTPINK1 = (255, 110, 180)
 HOTPINK2 = (238, 106, 167)
 HOTPINK3 = (205, 96, 144)
 HOTPINK4 = (139, 58, 98)
-INDIANRED = (176, 23, 31)
 INDIANRED = (205, 92, 92)
 INDIANRED1 = (255, 106, 106)
 INDIANRED2 = (238, 99, 99)

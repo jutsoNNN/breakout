@@ -32,4 +32,23 @@ score_offset = 5
 font_name = 'Arial'
 font_size = 20
 
-effect_duration = 7
+effect_duration = 20
+
+sounds_effects = dict(
+    brick_hit='sound_effects/brick_hit.wav',
+    effect_done='sound_effects/effect_done.wav',
+    paddle_hit='sound_effects/paddle_hit.wav',
+    level_complete='sound_effects/level_complete.wav',
+)
+
+message_duration = 2
+
+button_text_color = colors.WHITE,
+button_normal_back_color = colors.INDIANRED1
+button_hover_back_color = colors.INDIANRED2
+button_pressed_back_color = colors.INDIANRED3
+
+menu_offset_x = 20
+menu_offset_y = 300
+menu_button_w = 80
+menu_button_h = 50
