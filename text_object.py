@@ -1,8 +1,5 @@
 import pygame
 
-import config as c
-from game_object import GameObject
-
 
 class TextObject:
     def __init__(self, x, y, text_func, color, font_name, font_size):
