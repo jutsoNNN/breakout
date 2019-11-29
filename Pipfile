@@ -11,9 +11,9 @@ name = "pypi"
 
 [packages]
 
-pygame = "*"
+pygame = "==2.0.0.dev6"
 
 
 [requires]
 
-python_version = "3.6"
+python_version = "3.8"
